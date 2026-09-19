@@ -1,0 +1,947 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>NETRA • Investigator Intelligence Console</title>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <style>
+        :root {
+            --bg: #070b16;
+            --panel: #111a30;
+            --panel2: #17223d;
+            --line: #2a3a61;
+            --text: #f1f5ff;
+            --muted: #91a0c1;
+            --accent: #5577df;
+            --warn: #f2bd57;
+            --danger: #ef7180;
+            --good: #49c68d
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: Inter, Segoe UI, Arial, sans-serif
+        }
+
+        button,
+        input,
+        textarea,
+        select {
+            font: inherit
+        }
+
+        .top {
+            height: 76px;
+            border-bottom: 1px solid var(--line);
+            padding: 15px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0d1427
+        }
+
+        .brand {
+            font-size: 22px;
+            font-weight: 800
+        }
+
+        .sub {
+            color: var(--muted);
+            font-size: 13px;
+            margin-top: 3px
+        }
+
+        .status {
+            font-size: 12px;
+            color: #9fe1c1;
+            border: 1px solid #2b6c54;
+            padding: 7px 10px;
+            border-radius: 20px
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 310px 1fr 365px;
+            height: calc(100vh - 76px)
+        }
+
+        aside {
+            padding: 14px;
+            overflow: auto;
+            background: #0a1020
+        }
+
+        .left {
+            border-right: 1px solid var(--line)
+        }
+
+        .right {
+            border-left: 1px solid var(--line)
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 14px;
+            margin-bottom: 12px;
+            box-shadow: 0 8px 28px #0003
+        }
+
+        .card h3 {
+            margin: 0 0 11px;
+            font-size: 15px
+        }
+
+        .search {
+            display: flex;
+            gap: 7px
+        }
+
+        .search input {
+            flex: 1
+        }
+
+        .input,
+        textarea,
+        select {
+            width: 100%;
+            background: #0a1122;
+            border: 1px solid #33466f;
+            color: var(--text);
+            border-radius: 9px;
+            padding: 10px;
+            outline: none
+        }
+
+        .btn {
+            border: 0;
+            background: var(--accent);
+            color: #fff;
+            border-radius: 9px;
+            padding: 10px 13px;
+            cursor: pointer
+        }
+
+        .btn.alt {
+            background: #223253
+        }
+
+        .tabs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 10px
+        }
+
+        .tab {
+            background: #111a30;
+            border: 1px solid var(--line);
+            color: #b7c4e2;
+            padding: 9px;
+            border-radius: 8px;
+            cursor: pointer
+        }
+
+        .tab.active {
+            background: #273b70;
+            color: #fff
+        }
+
+        .center {
+            min-width: 0;
+            display: flex;
+            flex-direction: column
+        }
+
+        .toolbar {
+            height: 52px;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 12px;
+            background: #0c1325
+        }
+
+        .title {
+            font-weight: 750;
+            margin-right: auto
+        }
+
+        .tool {
+            background: #17233f;
+            color: #dfe7ff;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 7px 10px;
+            cursor: pointer
+        }
+
+        .profile-wrap{position:relative}
+        .profile-trigger{display:flex;align-items:center;gap:9px;border:0;background:transparent;color:#fff;padding:3px 5px;border-radius:10px;cursor:pointer;text-align:left}
+        .profile-trigger:hover{background:#0d1e38}
+        .profile-avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#45618f;color:#fff;font-weight:800;border:1px solid #5c78aa;box-shadow:0 0 10px #1d4e8733}
+        .profile-menu{position:absolute;right:0;top:calc(100% + 8px);min-width:150px;padding:6px;background:#081528;border:1px solid #245488;border-radius:10px;box-shadow:0 14px 32px #0009;z-index:100;display:none}
+        .profile-menu.open{display:block}
+        .profile-menu button{width:100%;border:0;background:transparent;color:#eaf2ff;text-align:left;padding:9px 10px;border-radius:7px;cursor:pointer;font:inherit}
+        .profile-menu button:hover{background:#10284b;color:#fff}
+
+        .view {
+            display: none;
+            flex: 1;
+            overflow: auto
+        }
+
+        .view.active {
+            display: block
+        }
+
+        .canvas {
+            position: relative;
+            overflow: hidden
+        }
+
+        .canvas svg {
+            width: 100%;
+            height: 100%;
+            display: block
+        }
+
+        .edge {
+            stroke: #62739b;
+            stroke-opacity: .5
+        }
+
+        .node-label {
+            font-size: 12px;
+            fill: #dce5ff;
+            pointer-events: none
+        }
+
+        .node-dot {
+            stroke: #fff;
+            stroke-opacity: .18;
+            stroke-width: 2
+        }
+
+        .statgrid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px
+        }
+
+        .stat {
+            background: #0d1529;
+            border: 1px solid #253557;
+            border-radius: 9px;
+            padding: 9px
+        }
+
+        .stat .n {
+            font-size: 19px;
+            font-weight: 800
+        }
+
+        .stat .l {
+            font-size: 10px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .5px
+        }
+
+        .badge {
+            display: inline-block;
+            background: #263a68;
+            color: #dfe8ff;
+            border-radius: 20px;
+            padding: 3px 7px;
+            font-size: 10px
+        }
+
+        .result,
+        .rel,
+        .record,
+        .flag,
+        .audit {
+            padding: 9px;
+            border: 1px solid #27385d;
+            background: #0d1529;
+            border-radius: 9px;
+            margin-top: 7px
+        }
+
+        .clickable {
+            cursor: pointer
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 12px
+        }
+
+        .score {
+            font-weight: 800
+        }
+
+        .detail-title {
+            font-size: 22px;
+            font-weight: 800
+        }
+
+        .kv {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #253557;
+            padding: 8px 0;
+            font-size: 12px
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse
+        }
+
+        .table th,
+        .table td {
+            text-align: left;
+            padding: 9px;
+            border-bottom: 1px solid #253557
+        }
+
+        .event {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            gap: 12px;
+            margin: 12px 18px
+        }
+
+        .date {
+            color: #9fb0d5;
+            font-size: 12px;
+            padding-top: 9px
+        }
+
+        .eventbox {
+            border-left: 3px solid var(--accent);
+            background: #101a31;
+            padding: 12px;
+            border-radius: 0 10px 10px 0
+        }
+
+        .notice {
+            color: #8f9fbe;
+            font-size: 11px;
+            line-height: 1.45;
+            margin-top: 8px
+        }
+
+        .empty {
+            color: #7182a5;
+            font-size: 13px;
+            padding: 12px
+        }
+
+        .chips {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap
+        }
+
+        .lead {
+            border-left: 3px solid var(--warn)
+        }
+
+        @media(max-width:1100px) {
+            .layout {
+                grid-template-columns: 260px 1fr
+            }
+
+            .right {
+                display: none
+            }
+        }
+
+        @media(max-width:760px) {
+            .layout {
+                grid-template-columns: 1fr
+            }
+
+            .left {
+                display: none
+            }
+
+            .top {
+                padding: 12px
+            }
+
+            .status {
+                display: none
+            }
+        }
+    .dashboard-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.metric-card{background:#0d1529;border:1px solid #2a3a61;border-radius:12px;padding:12px}.metric-card .big{font-size:24px;font-weight:850}.filterbar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}.filterbar label{background:#0d1529;border:1px solid #2a3a61;border-radius:8px;padding:7px 9px;font-size:11px}.integrity-ok{color:#79dfad}.integrity-bad{color:#ff8792}.hash{font-family:Consolas,monospace;font-size:10px;word-break:break-all;color:#9fb0d5}@media(max-width:900px){.dashboard-grid{grid-template-columns:repeat(2,1fr)}}
+        
+        .right{overflow:auto}.right #detail{padding:2px}.right .card{box-shadow:none}.entity-hero{display:flex;align-items:center;gap:10px;padding:12px;background:linear-gradient(135deg,#111d38,#17274a);border:1px solid #36518a;border-radius:12px}.entity-icon{font-size:28px}.action-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}.action-row .tool{width:100%}.section-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:16px 0 8px}.section-title h3{margin:0}.focus-pill{background:#29447e;color:#dce7ff;border:1px solid #4163a4;border-radius:20px;padding:3px 8px;font-size:10px}.graph-hud{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:8px}.graph-legend{display:flex;gap:7px;flex-wrap:wrap}.legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:#aebcda}.legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block}.graph-tip{position:absolute;pointer-events:none;z-index:8;display:none;min-width:170px;max-width:280px;background:#0b1222f2;border:1px solid #3a5389;border-radius:9px;padding:8px;box-shadow:0 12px 28px #0008;font-size:11px}.node-label{paint-order:stroke;stroke:#070b16;stroke-width:3px;stroke-linejoin:round}.node-dot{cursor:pointer}.selected-node{stroke:#fff!important;stroke-width:4!important;filter:drop-shadow(0 0 6px #58d8ff)}.edge-hit{stroke:transparent;stroke-width:12;opacity:0;cursor:pointer}.edge-label{font-size:9px;fill:#8294ba;pointer-events:none}.timeline-click{cursor:pointer}.timeline-click:hover .eventbox{border-color:#5577df;transform:translateX(2px)}.focus-list{display:flex;gap:5px;flex-wrap:wrap}.focus-list .badge{cursor:pointer}.search-help{font-size:10px;color:#7f90b3;margin-top:6px}.mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.mini-stat{padding:8px;background:#0b1326;border:1px solid #25385f;border-radius:8px}.mini-stat b{font-size:15px}.mini-stat span{display:block;font-size:10px;color:#8293b7;margin-top:2px}
+    
+        /* NETRA graph workspace polish */
+        .graph-controls-float{position:absolute;left:14px;right:14px;top:12px;z-index:10;pointer-events:none}
+        .graph-search-row{display:flex;align-items:center;gap:7px;pointer-events:auto}
+        .graph-search{height:42px;min-width:250px;max-width:390px;flex:1;display:flex;align-items:center;gap:7px;padding:0 9px;background:#091326f5;border:1px solid #29436f;border-radius:10px;box-shadow:0 10px 30px #0007}
+        .graph-search span{font-size:20px;color:#7dbdff}.graph-search .input{border:0;padding:7px;background:transparent}.graph-clear{border:0;background:transparent;color:#8fa3c8;font-size:18px;cursor:pointer}
+        .filter-trigger{height:42px;background:#102044;color:#e9f0ff;border:1px solid #36578e;border-radius:10px;padding:0 13px;font-weight:700;cursor:pointer;box-shadow:0 10px 30px #0007}
+        .graph-search-row .tool{height:42px;background:#102044;border-color:#294b80;white-space:nowrap}.graph-search-row .badge{height:32px;display:flex;align-items:center;white-space:nowrap;background:#102044;border:1px solid #294b80}
+        .graph-filter-menu{display:none;position:absolute;left:calc(min(390px,45%) + 7px);top:49px;width:235px;padding:9px;background:#0a1224f7;border:1px solid #315184;border-radius:12px;box-shadow:0 18px 45px #0009;pointer-events:auto}
+        .graph-filter-menu.open{display:block}.filter-head{display:flex;justify-content:space-between;align-items:center;padding:4px 5px 8px;border-bottom:1px solid #24385e;margin-bottom:6px}.filter-option{display:flex;align-items:center;gap:8px;padding:9px 7px;border-radius:8px;color:#dbe5ff;font-size:12px;cursor:pointer}.filter-option:hover{background:#152544}.filter-option input{accent-color:#4b9cff}.filter-option span{width:20px;text-align:center}.filter-option b{margin-left:auto;color:#8096be;font-size:10px}.filter-option.all{background:#101c35;margin-bottom:5px}.graph-mini-actions{display:flex;justify-content:space-between;gap:10px;margin-top:7px;padding:0 5px;color:#7388ae;font-size:10px}
+        .node-label-bg{pointer-events:none}.node-title{font-size:12px;font-weight:800}.node-type-label{font-size:9px;fill:#8297bc;pointer-events:none}.node-ring{pointer-events:none}.graph-node{filter:drop-shadow(0 3px 7px #0008)}
+        .edge-hit{stroke:transparent;stroke-width:14;cursor:pointer}.selected-node{stroke:#fff!important;stroke-width:4!important;filter:drop-shadow(0 0 9px #5edcff)}
+        @media(max-width:900px){.graph-search{min-width:160px}.graph-search-row .tool{padding:7px}.graph-search-row .tool{font-size:11px}.filter-trigger span{display:none}}
+
+/* ===== NETRA V15 — clean reference-style investigation workspace ===== */
+:root{--bg:#030814;--panel:#081326;--panel2:#0b1730;--line:#163a68;--text:#eef6ff;--muted:#7e9bc2;--accent:#168dff;--cyan:#28d9ff;--purple:#a85cff;--green:#26e39a;--yellow:#ffc52f;--pink:#ff4fc1;--red:#ff4f62}
+body{background:radial-gradient(circle at 55% 45%,#07142a 0%,#030814 55%,#02050d 100%);letter-spacing:.05px}
+.top{height:82px;padding:10px 22px;background:linear-gradient(180deg,#061126,#030a18);border-bottom:1px solid #124277;box-shadow:0 8px 30px #0008}
+.brand{font-size:25px;letter-spacing:-.4px}.sub{color:#83a7d8;font-size:12px}.status{border-color:#1c6d67;color:#70efc7;background:#06231f88;padding:8px 12px}
+.layout{grid-template-columns:320px minmax(0,1fr) 375px;height:calc(100vh - 82px);gap:0}
+aside{padding:14px;background:#040b18}.left{border-right:1px solid #12365d}.right{border-left:1px solid #12365d;background:#040a16;padding:10px}
+.card{background:linear-gradient(180deg,#09162b,#071123);border:1px solid #173c69;border-radius:13px;box-shadow:0 12px 34px #0009;margin-bottom:12px}
+.left .card{padding:13px}.left .card h3{font-size:14px}.btn{background:linear-gradient(135deg,#1577ff,#1b9cff);box-shadow:0 7px 18px #006dff30}.btn.alt,.tool{background:#0c1d3a;border:1px solid #1b4b80}.tool:hover,.btn.alt:hover{border-color:#2a9cff;background:#10284b}
+.center{background:#030914;min-width:0}.toolbar{height:57px;padding:7px 11px;background:#040b18;border-bottom:1px solid #12365d;gap:7px}.toolbar .title{font-size:16px}.toolbar .tool{height:39px;padding:7px 12px;border-radius:9px}
+.view.canvas{position:relative;overflow:hidden;background:radial-gradient(circle at 50% 52%,#071a31 0,#030b18 52%,#020713 100%)}
+/* Network-only shell: keep the graph unobstructed like the reference. */
+body.network-mode .left> .card:not(#reportPanel):not(#aiExtractor):not(#communityPanel){display:none}
+body.network-mode .left{padding:14px}.network-mode .toolbar{background:#040b18}
+body.network-mode .right{padding:10px 10px 10px 8px}
+body.network-mode .right #detail{height:100%;overflow:auto}
+.graph-controls-float{left:12px;right:12px;top:12px;z-index:20}.graph-search-row{gap:7px}
+.graph-search{height:44px;max-width:none;min-width:240px;background:#061227f5;border:1px solid #1d568c;border-radius:10px;box-shadow:0 8px 24px #0009}.graph-search .input{font-size:12px}.graph-search span{color:#58cfff}
+.filter-trigger,.graph-search-row .tool{height:44px;background:#081b37;border:1px solid #1d568c;border-radius:10px;font-size:12px}.filter-trigger{padding:0 14px}.graph-search-row .badge{height:34px;background:#081b37;border:1px solid #1d568c;color:#70dfff}
+.graph-filter-menu{left:calc(min(390px,45%) + 7px);top:51px;background:#07152af7;border:1px solid #2470ae;border-radius:12px;box-shadow:0 20px 50px #000b}
+.graph-filter-menu .filter-option{padding:8px}.graph-mini-actions{display:none}
+/* Hide the controls after the user wants a clean graph; button remains available. */
+.graph-clean-toggle{display:flex!important}
+.graph-canvas-corner{position:absolute;right:14px;bottom:14px;z-index:8;display:flex;flex-direction:column;gap:5px}
+.graph-corner-btn{width:40px;height:40px;border-radius:9px;border:1px solid #1d568c;background:#07162bf2;color:#d9efff;cursor:pointer;font-size:17px}
+/* Reference-style entity nodes */
+.node-label-bg{fill:#061123!important;stroke-width:1.2}.node-title{font-size:12px!important;font-weight:800}.node-type-label{font-size:9px!important}.graph-node{filter:drop-shadow(0 4px 10px #000b)}
+.edge-label{font-size:9px;fill:#a4c0e8}.edge-main{fill:none}.edge-hit{stroke-width:16!important}
+.right .entity-hero{background:linear-gradient(135deg,#081a35,#0a1224);border:1px solid #1d568c;padding:12px;border-radius:12px}.right .detail-title{font-size:19px}.right .action-row .tool{min-height:39px}.right .mini-stat{background:#07162b;border-color:#17446f}.right .rel{background:#07162b;border-color:#17446f;padding:10px}.right .section-title{margin-top:14px}.right .badge{background:#0c3157}
+.entity-risk-high{background:#e52238!important;color:white!important}.entity-risk-medium{background:#d79a16!important;color:#fff!important}.entity-risk-low{background:#157d61!important;color:white!important}
+.graph-legend-v15{position:absolute;left:14px;bottom:14px;z-index:9;display:flex;gap:12px;align-items:center;padding:9px 12px;background:#061225e8;border:1px solid #1d568c;border-radius:10px;box-shadow:0 10px 25px #0008}.graph-legend-v15 span{font-size:10px;color:#a9c0df}.graph-legend-v15 i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
+@media(max-width:1100px){.layout{grid-template-columns:280px 1fr}.right{display:none}.graph-search-row .tool{padding:7px 9px}.graph-search{min-width:170px}}
+@media(max-width:760px){.layout{grid-template-columns:1fr}.left{display:none}.top{height:70px}.brand{font-size:18px}.sub{display:none}.toolbar{overflow-x:auto}.graph-search-row{flex-wrap:wrap}.graph-search{min-width:100%;max-width:100%}}
+
+
+/* ===== V17 INTERNAL FINAL POLISH ===== */
+.login-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at 50% 35%,#0b2b52aa 0,#020711f2 48%,#01040afc 100%);backdrop-filter:blur(8px);overflow:auto}
+.login-box{width:min(440px,92vw);padding:30px;border:1px solid #1f79b5;border-radius:22px;background:linear-gradient(145deg,#07182d,#040b18 70%);box-shadow:0 30px 90px #000c,0 0 55px #008cff18;position:relative;overflow:hidden}
+.login-box:before{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent,#24d8ff0b,transparent);pointer-events:none}
+.login-brand{justify-content:center;gap:14px;margin-bottom:20px}.login-brand img{width:66px;height:66px;border-radius:18px;border:1px solid #3ddcff;box-shadow:0 0 25px #14bfff55}.login-brand .brand{font-size:32px;font-weight:900;letter-spacing:1px}.login-box .muted{text-align:left}.login-box .input{height:46px;border-radius:11px;background:#061225;border-color:#1b4e7d}.login-box .btn{height:46px;border-radius:11px;font-weight:800;font-size:13px}
+.login-security{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:15px}.login-security div{padding:8px 5px;border:1px solid #173b61;border-radius:9px;text-align:center;color:#87a9d3;font-size:10px;background:#061124}.login-security b{display:block;color:#dceeff;font-size:11px;margin-bottom:3px}
+.upload-hub{border:1px solid #205b8c!important;background:linear-gradient(180deg,#0a1c35,#071226)!important}.upload-hub h3{margin-bottom:5px}.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.upload-card{position:relative;border:1px solid #204b76;background:#071528;border-radius:11px;padding:11px;cursor:pointer;transition:.18s}.upload-card:hover{border-color:#2bd8ff;transform:translateY(-1px);background:#0a1c35}.upload-card .uicon{font-size:22px}.upload-card b{display:block;font-size:11px;margin-top:5px}.upload-card span{font-size:9px;color:#7897bd}.upload-card input{display:none}.upload-status{margin-top:9px;font-size:10px;color:#82a3c9;min-height:14px}.network-empty{display:grid;place-items:center;height:100%;color:#6f88aa;text-align:center;padding:30px}.network-empty b{color:#bfe9ff;font-size:18px;display:block;margin-bottom:7px}.edge-label{paint-order:stroke;stroke:#030914;stroke-width:4px}.graph-node{cursor:pointer}.graph-node .node-label-bg,.graph-node .node-label,.graph-node .node-type-label{display:none!important}.graph-node:hover .node-dot{filter:drop-shadow(0 0 10px #58d8ff)}
+@media(max-width:760px){.upload-grid{grid-template-columns:1fr}.login-security{grid-template-columns:1fr}}
+
+/* ===== NETRA FINAL RESPONSIVE / NAVIGATION FIX ===== */
+.layout{
+    min-width:0;
+    min-height:0;
+}
+.center{
+    min-width:0;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+}
+.toolbar{
+    flex:0 0 57px;
+    min-width:0;
+    max-width:100%;
+    display:flex;
+    align-items:center;
+    overflow-x:auto;
+    overflow-y:hidden;
+    white-space:nowrap;
+    scrollbar-width:thin;
+    scrollbar-color:#245488 #061124;
+}
+.toolbar::-webkit-scrollbar{height:6px}
+.toolbar::-webkit-scrollbar-track{background:#061124}
+.toolbar::-webkit-scrollbar-thumb{background:#245488;border-radius:8px}
+.toolbar .title{
+    flex:0 0 auto;
+    position:sticky;
+    left:0;
+    z-index:3;
+    background:#040b18;
+    padding-right:8px;
+}
+.toolbar .tool{
+    flex:0 0 auto;
+}
+.view{
+    min-width:0;
+    min-height:0;
+    overflow:auto;
+    -webkit-overflow-scrolling:touch;
+}
+.view.active{min-height:0}
+.right{
+    min-width:0;
+    min-height:0;
+    overflow:auto;
+}
+.left{
+    min-width:0;
+    min-height:0;
+}
+.dashboard-grid,
+.metric-grid,
+.stats-grid{
+    min-width:0;
+}
+.table-wrap,.data-table-wrap{
+    max-width:100%;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+}
+img,svg,video,canvas{
+    max-width:100%;
+}
+@media(max-width:1100px){
+    .layout{grid-template-columns:280px minmax(0,1fr)}
+    .right{display:none}
+    .toolbar{flex-basis:54px}
+    .toolbar .title{font-size:14px}
+}
+@media(max-width:760px){
+    body{overflow:hidden}
+    .top{
+        height:64px;
+        min-height:64px;
+        padding:8px 10px;
+        gap:8px;
+    }
+    .top > div:first-child{
+        min-width:0;
+        overflow:hidden;
+    }
+    .top > div:first-child > img{
+        width:38px!important;
+        height:38px!important;
+        flex:0 0 38px;
+    }
+    .top .brand{
+        font-size:16px;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+    }
+    .top .sub{display:none}
+    .top .status{display:none}
+    .profile-trigger{padding:2px}
+    .profile-avatar{width:34px;height:34px}
+    .profile-trigger #userName{font-size:11px!important}
+    .profile-trigger #userRole{font-size:9px!important}
+    .profile-menu{right:0;min-width:130px}
+    .layout{
+        grid-template-columns:minmax(0,1fr);
+        height:calc(100vh - 64px);
+        min-height:0;
+    }
+    .left,.right{display:none}
+    .toolbar{
+        flex:0 0 52px;
+        height:52px;
+        padding:6px 8px;
+        gap:6px;
+        overflow-x:auto;
+        overflow-y:hidden;
+    }
+    .toolbar .title{
+        font-size:13px;
+        line-height:1.1;
+        max-width:120px;
+        white-space:normal;
+        padding-right:7px;
+    }
+    .toolbar .tool{
+        height:38px;
+        padding:7px 10px;
+        font-size:11px;
+        border-radius:8px;
+    }
+    .view{
+        width:100%;
+        max-width:100%;
+        overflow:auto;
+        padding-bottom:20px;
+    }
+    .view > *{
+        max-width:100%;
+    }
+    .dashboard-grid{
+        grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    }
+    .metric-card{min-width:0}
+    .card{max-width:100%}
+    .graph-search-row{
+        width:100%;
+        flex-wrap:wrap;
+    }
+    .graph-search{
+        min-width:0!important;
+        width:100%;
+        max-width:100%;
+    }
+    .graph-filter-menu{
+        left:8px!important;
+        right:8px;
+        max-width:calc(100vw - 16px);
+    }
+    .action-row{
+        grid-template-columns:1fr;
+    }
+    .login-overlay{padding:12px}
+    .login-box{
+        width:min(440px,96vw);
+        padding:22px;
+    }
+}
+@media(max-width:430px){
+    .top .brand{font-size:14px}
+    .profile-trigger #userRole{display:none}
+    .profile-avatar{width:32px;height:32px}
+    .toolbar .title{max-width:92px}
+    .dashboard-grid{grid-template-columns:1fr!important}
+    .metric-card .big{font-size:21px}
+}
+</style>
+    <link rel="icon" type="image/png" href="/static/trinetra-eye.png">
+<link rel="apple-touch-icon" href="/static/trinetra-eye.png">
+</head>
+
+<body><div id="loginOverlay" class="login-overlay">
+  <div class="login-box">
+    <div class="login-brand"><img src="/static/trinetra-eye.png" alt="NETRA"><div><div class="brand">NETRA</div><div class="sub">Investigation Intelligence Console</div></div></div>
+    <div class="notice" style="margin-bottom:16px;border-color:#1b5685;background:#061528"><b style="color:#bdeaff">AUTHORIZED INVESTIGATOR ACCESS</b><br><span class="muted">Sign in to access case evidence and intelligence modules.</span></div>
+    <label class="muted">Username</label><input id="loginUser" class="input" style="margin:6px 0 12px" value="memayankk" autocomplete="username">
+    <label class="muted">Password</label><input id="loginPass" type="password" class="input" style="margin:6px 0 4px" placeholder="Enter password" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()">
+    <div id="loginError" class="login-error"></div>
+    <button class="btn" style="width:100%;margin-top:12px" onclick="login()">🔐 Sign in securely</button>
+    <div class="login-security"><div><b>AUTH</b>Protected</div><div><b>RBAC</b>Role based</div><div><b>AUDIT</b>Logged</div></div>
+    <div class="notice" style="margin-top:13px;font-size:10px">Demo account: <b>memayankk</b> / <b>Netra@2026</b><br><span class="muted">Synthetic demonstration data.</span></div>
+  </div>
+</div>
+
+    <header class="top">
+    <div style="display:flex;align-items:center;gap:12px">
+        
+        <img src="/static/trinetra-eye.png"
+             alt="NETRA logo"
+             title="NETRA AI"
+             style="width:52px;height:52px;border-radius:50%;object-fit:cover;
+                    border:2px solid #45dcff;box-shadow:0 0 16px #24caff">
+
+        <div>
+            <div class="brand">
+                NETRA — AI-Powered Criminal Network Analysis
+            </div>
+
+            <div class="sub">
+                Synthetic-data MVP • Investigator Intelligence Console •
+                Network + Evidence + Pattern Analysis
+            </div>
+        </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:14px"><div class="status">● SYSTEM ONLINE</div><div style="height:38px;width:1px;background:#173b62"></div><div class="profile-wrap" id="profileWrap"><button class="profile-trigger" type="button" onclick="toggleProfileMenu(event)" aria-haspopup="true" aria-expanded="false"><div class="profile-avatar">M</div><div style="line-height:1.05"><b id="userName" style="font-size:12px">Mayank</b><div id="userRole" class="muted" style="font-size:10px;margin-top:3px">Investigator</div></div></button><div class="profile-menu" id="profileMenu"><button type="button" onclick="logout()">↪ Logout</button></div></div></div>
+</header>
+    <div class="layout">
+        <aside class="left">
+            <div class="card">
+                <h3>🔎 Investigator Search</h3>
+                <div class="search"><input id="search" class="input" placeholder="Amit Verma / phone / vehicle"><button
+                        class="btn" onclick="searchEntity()">Search</button></div>
+                <div class="search-help">Search any person, phone, vehicle, account, organization or location. Click a result to focus the graph.</div><div id="searchResult"></div>
+            </div>
+            <div class="card">
+                <h3>📊 Live Case Metrics</h3>
+                <div id="stats" class="statgrid"></div>
+            </div>
+            <div class="card">
+                <h3>⚠️ Investigation Leads</h3>
+                <div id="flags">
+                    <div class="empty">Loading…</div>
+                </div>
+            </div>
+            <div class="card">
+                <h3>🧠 AI-style Case Summary</h3>
+                <div id="summary" class="notice">Generating…</div>
+            </div>
+            <div class="card upload-hub">
+                <h3>📥 Evidence Upload Center</h3>
+                <div class="muted" style="font-size:10px">Upload the source in its correct intelligence category so NETRA analyzes it with the right parser.</div>
+                <div class="upload-grid">
+                  <label class="upload-card"><input id="uploadReport" type="file" accept=".pdf,.txt,.json" onchange="uploadCategorized(this,'FIR')"><div class="uicon">📄</div><b>Report / FIR</b><span>PDF · TXT · JSON</span></label>
+                  <label class="upload-card"><input id="uploadCDR" type="file" accept=".csv" onchange="uploadCategorized(this,'CDR')"><div class="uicon">📞</div><b>CDR Records</b><span>CSV · caller/receiver</span></label>
+                  <label class="upload-card"><input id="uploadFinance" type="file" accept=".csv,.txt" onchange="uploadCategorized(this,'FINANCIAL')"><div class="uicon">💳</div><b>Financial Records</b><span>CSV · transactions</span></label>
+                  <label class="upload-card"><input id="file" type="file" accept="*/*" onchange="uploadFile()"><div class="uicon">📦</div><b>Other Evidence</b><span>Auto-detect format</span></label>
+                </div>
+                <div id="uploadStatus" class="upload-status">No file uploaded in this session.</div>
+                <div class="notice" style="margin-top:8px">Demo data only. Production requires authorization, RBAC, encryption, audit logging, retention controls and legal review.</div>
+            </div>
+            <div class="card">
+                <h3>✍️ Manual Evidence Entry</h3>
+                <div style="display:flex;gap:7px;margin-bottom:7px"><input id="rid" class="input" placeholder="Record ID"><select id="rtype" class="input"><option>FIR</option><option>CDR</option><option>FINANCIAL</option><option>SURVEILLANCE</option><option>REPORT</option></select></div><textarea id="text" rows="4" placeholder="Synthetic report text…"></textarea><button class="btn" style="margin-top:7px;width:100%" onclick="addRecord()">Ingest Record</button>
+            </div>
+            <div class="card">
+                <h3>📞 CDR Intelligence</h3><button class="btn alt" style="width:100%" onclick="loadCDR()">Analyze CDR
+                    Network</button>
+                <div id="cdrBox" class="notice">Upload a CSV containing caller, receiver, duration and optional date
+                    columns.</div>
+            </div>
+        </aside>
+        <section class="center">
+            <div class="toolbar">
+                <div id="viewTitle" class="title">NETRA Dashboard</div><button class="tool" onclick="showView('dashboardView','NETRA Dashboard');loadDashboard()">Dashboard</button><button class="tool"
+                    onclick="showView('networkView','Relationship Network')">Network</button><button class="tool"
+                    onclick="showView('timelineView','Investigation Timeline')">Timeline</button><button class="tool"
+                    onclick="showView('analyticsView','Network Intelligence')">Analytics</button><button class="tool"
+                    onclick="showView('locationView','Location Intelligence')">Locations</button><button class="tool"
+                    onclick="showView('auditView','Audit Trail')">Audit</button><button class="tool"
+                    onclick="showView('cdrView','CDR Intelligence');loadCDR()">CDR</button><button class="tool"
+                    onclick="showView('financialView','Financial Intelligence');loadFinancial()">Finance</button><button
+                    class="tool"
+                    onclick="showView('unifiedView','Unified Investigation');loadUnified()">Unified</button><button class="tool" onclick="showView('securityView','Security & Evidence Integrity');loadSecurity()">🔐 Security</button><button class="tool" onclick="generateInvestigationReport()">📑 Report</button>
+            </div>
+            <div id="dashboardView" class="view active"></div><div id="networkView" class="view canvas"></div>
+            <div id="timelineView" class="view"></div>
+            <div id="analyticsView" class="view"></div>
+            <div id="locationView" class="view"></div>
+            <div id="auditView" class="view"></div>
+            <div id="cdrView" class="view"></div>
+            <div id="financialView" class="view"></div>
+            <div id="unifiedView" class="view"></div><div id="securityView" class="view"></div>
+        </section>
+        <aside class="right">
+            <div id="detail">
+                <div class="empty">Select an entity in the graph to inspect connections and evidence.</div>
+            </div>
+        </aside>
+    </div>
+    <script>
+const TYPE_META={PERSON:{icon:'👤',label:'Person'},PHONE:{icon:'📱',label:'Phone'},VEHICLE:{icon:'🚗',label:'Vehicle'},ACCOUNT:{icon:'🏦',label:'Account'},ORG:{icon:'🏢',label:'Organization'},LOCATION:{icon:'📍',label:'Location'},EVENT:{icon:'◉',label:'Event'}};
+
+        const colors = { PERSON: '#ff8a65', PHONE: '#42d6a4', VEHICLE: '#ffc83d', LOCATION: '#35c8ff', ORG: '#9b6cff', ACCOUNT: '#ff4fb3', EMAIL: '#ce93d8', EVENT:'#718096' }; let G = { nodes: [], edges: [] }, svg, zoom, root, sim;
+        const $ = id => document.getElementById(id); const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); const js = s => String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const API_BASE = location.protocol === 'file:' ? 'http://127.0.0.1:8001' : '';
+        async function login(){ const user=$('loginUser').value.trim(), pass=$('loginPass').value, err=$('loginError'); err.style.display='none'; try{ const r=await fetch(API_BASE+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:user,password:pass})}); if(!r.ok) throw Error((await r.json()).detail||'Login failed'); const d=await r.json(); $('userName').textContent='Mayank'; $('userRole').textContent=d.role || 'Investigator'; $('loginOverlay').style.display='none'; await bootWorkspace(); }catch(e){err.textContent=e.message;err.style.display='block'} }
+        function toggleProfileMenu(event){ event.stopPropagation(); const menu=$('profileMenu'), trigger=document.querySelector('.profile-trigger'); const open=menu.classList.toggle('open'); trigger.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+        document.addEventListener('click', function(event){ const wrap=$('profileWrap'); if(wrap && !wrap.contains(event.target)){ $('profileMenu')?.classList.remove('open'); document.querySelector('.profile-trigger')?.setAttribute('aria-expanded','false'); } });
+        async function logout(){ try{await fetch(API_BASE+'/api/auth/logout',{method:'POST'});}catch(e){} location.reload(); }
+        async function bootWorkspace(){ initPathFinder(); initCommunityPanel(); initAIExtractor(); initReportPanel(); initAssistant(); window.reportFocus=[]; reportFocusUpdate(); load().catch(e => { $('detail').innerHTML = '<div class="empty">NETRA UI error: ' + esc(e.message) + '</div>'; console.error(e) }); }
+        async function bootAuth(){ try{ const r=await fetch(API_BASE+'/api/auth/me'); if(!r.ok) throw Error('not authenticated'); const d=await r.json(); $('userName').textContent='Mayank'; $('userRole').textContent=d.role || 'Investigator'; $('loginOverlay').style.display='none'; await bootWorkspace(); }catch(e){ $('loginOverlay').style.display='flex'; $('loginPass').focus(); } }
+        async function api(u, o) { try { let r = await fetch(API_BASE + u, o); if (!r.ok) throw Error(await r.text()); return r.json() } catch (error) { if (error instanceof TypeError) throw Error('NETRA backend is offline. Start: py -3.13 -m uvicorn app.main:app --reload --port ' + (location.port || '8001')); throw error } }
+        function initPathFinder() { if ($('pathFinder')) return; document.querySelector('.left').insertAdjacentHTML('afterbegin', `<div class="card" id="pathFinder"><h3>🔗 Connection Path Finder</h3><input id="pathSource" class="input" placeholder="First entity" style="margin-bottom:7px"><input id="pathTarget" class="input" placeholder="Second entity"><button class="btn alt" style="margin-top:7px;width:100%" onclick="findPath()">Find Shortest Evidence Path</button><div id="pathResult" class="notice">Click one graph/search entity, then another; their IDs are filled automatically.</div></div>`) }
+        function initCommunityPanel() { if ($('communityPanel')) return; document.querySelector('.left').insertAdjacentHTML('afterbegin', `<div class="card" id="communityPanel"><h3>🧩 Network Communities & Anomalies</h3><button class="btn alt" style="width:100%" onclick="loadCommunities()">Analyze Network Clusters</button><div id="communityResult" class="notice">Detects clusters, bridge entities, shared identifiers, and CDR/financial leads.</div></div>`) }
+        function initAssistant() { if ($('trinetraButton')) return; document.body.insertAdjacentHTML('beforeend', `<button id="trinetraButton" onclick="toggleNETRA(true)" style="position:fixed;right:24px;bottom:24px;z-index:20;display:flex;align-items:center;gap:9px;border:1px solid #65d8ff;background:linear-gradient(135deg,#113b78,#6b36aa);color:#fff;border-radius:30px;padding:7px 16px 7px 7px;font-weight:800;box-shadow:0 12px 32px #0008;cursor:pointer"><img src="/static/trinetra-eye.png" alt="NETRA eye" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #45dcff;box-shadow:0 0 14px #24caff">NETRA AI</button><div id="trinetraModal" onclick="if(event.target===this)toggleNETRA(false)" style="display:none;position:fixed;inset:0;z-index:30;background:#000a;align-items:center;justify-content:center;padding:18px"><section style="width:min(680px,100%);max-height:86vh;overflow:auto;background:#111a30;border:1px solid #4967c8;border-radius:18px;padding:18px;box-shadow:0 20px 70px #000b"><div style="display:flex;align-items:center;justify-content:space-between;gap:14px"><div style="display:flex;align-items:center;gap:12px"><img src="/static/trinetra-eye.png" alt="NETRA eye" style="width:62px;height:62px;border-radius:50%;object-fit:cover;border:2px solid #45dcff;box-shadow:0 0 18px #24caff"><div><div class="detail-title">NETRA</div><div class="muted">Evidence-grounded Investigation Assistant</div></div></div><button class="tool" onclick="toggleNETRA(false)">✕ Close</button></div><div class="notice">Ask about paths, profiles, CDR, financial activity, communities, or graph priority. Answers use only the current synthetic case graph.</div><textarea id="assistantQuery" rows="4" style="margin-top:12px" placeholder="e.g. Rohan Mehta aur Suresh Khan ka shortest path dikhao"></textarea><button class="btn" style="margin-top:8px;width:100%" onclick="askAssistant()">Ask NETRA</button><div id="assistantResult" class="notice" style="margin-top:12px">Ready for an investigation question.</div></section></div>`) }
+        function toggleNETRA(open) { $('trinetraModal').style.display = open ? 'flex' : 'none'; if (open) setTimeout(() => $('assistantQuery').focus(), 50) }
+        async function askAssistant(sample) { const input = $('assistantQuery'), box = $('assistantResult'); if (sample) input.value = sample; const query = input.value.trim(); if (!query) { box.textContent = 'Investigation question likho.'; return } box.textContent = 'Reviewing current evidence graph…'; try { const result = await api('/api/assistant', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query }) }); box.innerHTML = `<div class="record"><b>${esc(result.intent)}</b><p>${esc(result.answer)}</p><div class="notice">Evidence records: ${result.evidence_records.map(esc).join(', ') || 'No specific record IDs for this graph-level answer.'}</div><div class="notice">${esc(result.disclaimer)}</div></div><div class="chips">${result.suggested_queries.slice(0, 3).map(q => `<span class="badge clickable" onclick="askAssistant('${js(q)}')">${esc(q)}</span>`).join('')}</div>` } catch (e) { box.textContent = 'Assistant error: ' + e.message } }
+        async function loadCommunities() { const box = $('communityResult'); box.textContent = 'Analyzing current evidence graph…'; try { const data = await api('/api/communities'); const clusters = data.communities.map(c => `<div class="record"><b>Cluster ${c.id}</b> · ${c.size} entity(s)<div class="chips">${c.members.slice(0, 8).map(m => `<span class="badge clickable" onclick="selectEntity('${js(m.id)}')">${esc(m.label)}</span>`).join('')}</div></div>`).join('') || '<div class="empty">No communities found.</div>'; const signals = data.anomalies.slice(0, 8).map(a => `<div class="flag"><b>${esc(a.entity)} · ${esc(a.severity)}</b><br><span class="muted">${esc(a.kind.replaceAll('_', ' '))}</span><div class="notice">${esc(a.detail)}</div></div>`).join('') || '<div class="empty">No anomaly signals.</div>'; box.innerHTML = `<div class="notice"><b>${data.stats.communities}</b> community(s) · <b>${data.stats.anomalies}</b> lead(s)</div><h3 style="margin-top:12px">Clusters</h3>${clusters}<h3 style="margin-top:12px">Investigation Leads</h3>${signals}` } catch (e) { box.textContent = 'Community analysis error: ' + e.message } }
+        async function findPath() { const source = $('pathSource').value.trim(), target = $('pathTarget').value.trim(), box = $('pathResult'); if (!source || !target) { box.textContent = 'Enter both Entity IDs.'; return } try { const result = await api('/api/path?source=' + encodeURIComponent(source) + '&target=' + encodeURIComponent(target)); if (!result.found) { box.textContent = 'No connection path exists in the current case graph.'; return } box.innerHTML = `<b>${result.hops} hop(s)</b><br>${result.path.map(x => `<span class="badge">${esc(x.label)} · ${esc(x.type)}</span>`).join(' → ')}<div class="notice">Evidence: ${result.evidence_records.map(esc).join(', ') || 'No record IDs available'}</div>` } catch (e) { box.textContent = 'Path search error: ' + e.message } }
+        async function load() { const [g, a, t, l, s] = await Promise.all([api('/api/graph'), api('/api/analytics'), api('/api/timeline'), api('/api/locations'), api('/api/summary')]); G = g; window.graphTypeFilter=window.graphTypeFilter||new Set(['PERSON','PHONE','VEHICLE','ACCOUNT','ORG','LOCATION']); renderStats(a.stats); renderFlags(a.suspicious, a.patterns); renderGraph(g); renderAnalytics(a); renderTimeline(t); renderLocations(l); $('summary').textContent = s.text; loadDashboard(); }
+        function renderStats(s) { $('stats').innerHTML = [['Entities', s.entities], ['Relations', s.relationships], ['People', s.people], ['Records', s.records], ['Financial', s.financial_mentions], ['Locations', s.locations], ['Phones', s.phones], ['Amount', '₹' + Number(s.financial_total || 0).toLocaleString('en-IN')]].map(x => `<div class="stat"><div class="n">${x[1]}</div><div class="l">${x[0]}</div></div>`).join('') }
+        function renderFlags(fs, ps) { let arr = [...fs, ...ps]; $('flags').innerHTML = arr.length ? arr.slice(0, 8).map(x => `<div class="flag lead"><b>${esc(x.entity)}</b><div class="muted">${esc(x.reason || x.title)} ${x.score !== undefined ? '• ' + x.score : ''}</div><div class="notice">${esc(x.explanation || x.detail)}</div></div>`).join('') : '<div class="empty">No demo leads detected.</div>' }
+        function initGraphControls(){
+ if($('graphControls')) return;
+ $('networkView').insertAdjacentHTML('beforeend',`<div id="graphControls" class="graph-controls-float">
+   <div class="graph-search-row">
+     <div class="graph-search"><span>⌕</span><input id="graphSearch" class="input" placeholder="Search entity…" oninput="searchGraph()"><button class="graph-clear" onclick="clearGraphSearch()">×</button></div>
+     <button class="filter-trigger" onclick="toggleGraphFilters()">☷ <span>Filter Entities</span></button>
+     <button class="tool" onclick="focusSelectedEntity()">◎ Focus</button>
+     <button class="tool" onclick="fitGraph(true)">⌗ Auto-fit</button>
+     <button class="tool" onclick="reheatGraph()">⤨ Re-layout</button>
+     <span class="badge" id="graphCount">0 entities</span>
+   </div>
+   <div id="graphFilterMenu" class="graph-filter-menu">
+      <div class="filter-head"><b>Filter Entities</b><button class="graph-clear" onclick="toggleGraphFilters(false)">×</button></div>
+      <label class="filter-option all"><input type="checkbox" id="gt-all" onchange="toggleAllGraphTypes(this.checked)"><span>◉</span> All entities <b id="gt-total">0</b></label>
+      ${[['PERSON','👤','People'],['PHONE','📱','Phones'],['VEHICLE','🚗','Vehicles'],['ACCOUNT','🏦','Accounts'],['ORG','🏢','Organizations'],['LOCATION','📍','Locations'],['EVENT','◉','Events']].map(([t,i,l])=>`<label class="filter-option"><input type="checkbox" data-gt="${t}" ${t==='EVENT'?'':'checked'} onchange="applyGraphFilter()"><span>${i}</span>${l}<b id="gt-${t}">0</b></label>`).join('')}
+   </div>
+   <div class="graph-mini-actions"><span>🕸️ Network graph</span><span id="graphHint">Click any node for intelligence</span></div>
+ </div><div id="graphTip" class="graph-tip"></div>`);
+ updateGraphFilterCounts();
+ document.addEventListener('click',ev=>{const menu=$('graphFilterMenu'),trigger=document.querySelector('.filter-trigger');if(menu&&menu.classList.contains('open')&&!menu.contains(ev.target)&&!trigger?.contains(ev.target))menu.classList.remove('open');});
+}
+function toggleGraphFilters(force){ const m=$('graphFilterMenu'); if(!m)return; if(force===undefined)m.classList.toggle('open'); else m.classList.toggle('open',force); }
+function toggleAllGraphTypes(checked){ document.querySelectorAll('#graphFilterMenu input[data-gt]').forEach(x=>x.checked=checked); applyGraphFilter(); }
+function updateGraphFilterCounts(){ if(!$('graphFilterMenu'))return; const counts={}; (G.nodes||[]).forEach(n=>counts[n.type]=(counts[n.type]||0)+1); $('gt-total').textContent=G.nodes.length; Object.keys(TYPE_META).concat(['EVENT']).forEach(t=>{const el=$('gt-'+t);if(el)el.textContent=counts[t]||0}); }
+function searchGraph(){ const q=($('graphSearch')?.value||'').trim().toLowerCase(); if(!q){clearGraphHighlight();return;} const matches=(G.nodes||[]).filter(n=>(n.label||'').toLowerCase().includes(q)||(n.id||'').toLowerCase().includes(q)); root?.selectAll('.node-dot').attr('opacity',n=>matches.includes(n)?1:.12).attr('stroke-width',n=>matches.includes(n)?3:2); root?.selectAll('.node-label').attr('opacity',n=>matches.includes(n)?1:.12); if(matches.length===1) selectEntity(matches[0].id); }
+function clearGraphSearch(){ if($('graphSearch'))$('graphSearch').value=''; clearGraphHighlight(); }
+function focusSelectedEntity(){ if(window.selectedEntityId) focusGraphNode(window.selectedEntityId); else fitGraph(true); }
+function renderGraphFiltered(){ const selected=window.graphTypeFilter||new Set(['PERSON','PHONE','VEHICLE','ACCOUNT','ORG','LOCATION','EVENT']); const nodes=G.nodes.filter(n=>selected.has(n.type)); const ids=new Set(nodes.map(n=>n.id)); const edges=G.edges.filter(e=>ids.has(typeof e.source==='object'?e.source.id:e.source)&&ids.has(typeof e.target==='object'?e.target.id:e.target)); const clean={nodes:nodes.map(n=>({...n})),edges:edges.map(e=>({...e}))}; renderGraph(clean); document.querySelectorAll('#graphControls input[data-gt]').forEach(x=>x.checked=selected.has(x.dataset.gt)); const all=[...document.querySelectorAll('#graphControls input[data-gt]')].every(x=>x.checked); if($('gt-all'))$('gt-all').checked=all; updateGraphFilterCounts(); }
+function applyGraphFilter(){ window.graphTypeFilter=new Set([...document.querySelectorAll('#graphControls input[data-gt]:checked')].map(x=>x.dataset.gt)); renderGraphFiltered(); }
+function renderGraph(g) {
+ const el=$('networkView'); el.innerHTML='';
+ const w=Math.max(760,el.clientWidth||1000), h=Math.max(560,el.clientHeight||720);
+ window.currentGraphNodes=g.nodes; initGraphControls();
+ // Extra graph actions/legend are part of the canvas, not the global page.
+ const controls=document.createElement('div'); controls.className='graph-canvas-corner'; controls.innerHTML='<button class="graph-corner-btn" title="Zoom in" onclick="zoomIn()">＋</button><button class="graph-corner-btn" title="Zoom out" onclick="zoomOut()">−</button><button class="graph-corner-btn" title="Fit graph" onclick="fitGraph(true)">⛶</button>'; el.appendChild(controls);
+ const legend=document.createElement('div'); legend.className='graph-legend-v15'; legend.innerHTML=Object.entries(colors).filter(([t])=>t!=='EMAIL').map(([t,c])=>`<span><i style="background:${c};box-shadow:0 0 7px ${c}"></i>${esc(TYPE_META[t]?.label||t)}</span>`).join(''); el.appendChild(legend);
+ zoom=d3.zoom().scaleExtent([.18,4]).on('zoom',e=>root.attr('transform',e.transform));
+ svg=d3.select(el).append('svg').attr('width','100%').attr('height','100%').attr('viewBox',`0 0 ${w} ${h}`).call(zoom);
+ root=svg.append('g');
+ svg.on('click',()=>clearGraphHighlight());
+ const defs=svg.append('defs');
+ Object.entries(colors).forEach(([type,c])=>defs.append('marker').attr('id','arrow-'+type).attr('viewBox','0 -4 8 8').attr('refX',8).attr('refY',0).attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto').append('path').attr('d','M0,-4L8,0L0,4Z').attr('fill',c));
+ const tip=$('graphTip');
+ const edgeGroup=root.append('g');
+ const endpoint=x=>typeof x==='object'?x.id:x;
+ const edgeData=g.edges.map((e,i)=>({...e,_i:i}));
+ const links=edgeGroup.selectAll('path.main-edge').data(edgeData).join('path').attr('class','edge main-edge').attr('fill','none').attr('stroke',d=>colors[(d.types||[])[0]]||'#55749b').attr('stroke-width',d=>1.2+Math.min(2.6,Number(d.weight||1))).attr('stroke-opacity',.58).attr('marker-end',d=>`url(#arrow-${(d.types||[])[0]||'ORG'})`);
+ const hits=edgeGroup.selectAll('path.edge-hit').data(edgeData).join('path').attr('class','edge-hit').attr('fill','none')
+   .on('mouseenter',(ev,d)=>{if(tip){tip.style.display='block';tip.innerHTML=`<b>${esc((d.relationship_type||d.types||['LINKED'])[0]||'LINKED')}</b><br><span class="muted">Evidence: ${esc((d.records||[]).join(', ')||'—')}</span>`;tip.style.left=(ev.offsetX+14)+'px';tip.style.top=(ev.offsetY+14)+'px'}})
+   .on('mousemove',ev=>{if(tip){tip.style.left=(ev.offsetX+14)+'px';tip.style.top=(ev.offsetY+14)+'px'}}).on('mouseleave',()=>{if(tip)tip.style.display='none'});
+ const edgeLabels=edgeGroup.selectAll('text.edge-label').data(edgeData).join('text').attr('class','edge-label').attr('text-anchor','middle').text(d=>{const x=(d.relationship_type||d.types||[])[0]||'linked';return String(x).replaceAll('_',' ').toLowerCase()});
+ const nodes=root.append('g').selectAll('g.graph-node').data(g.nodes).join('g').attr('class','graph-node').attr('cursor','pointer')
+   .on('mouseenter',(ev,d)=>{if(tip){tip.style.display='block';tip.style.left=(ev.offsetX+14)+'px';tip.style.top=(ev.offsetY+14)+'px';tip.innerHTML=`<b>${esc(d.label)}</b><br><span class="badge">${esc(TYPE_META[d.type]?.label||d.type)}</span>`}})
+   .on('mousemove',ev=>{if(tip){tip.style.left=(ev.offsetX+14)+'px';tip.style.top=(ev.offsetY+14)+'px'}}).on('mouseleave',()=>{if(tip)tip.style.display='none'})
+   .on('click',(e,d)=>{e.stopPropagation();selectEntity(d.id)});
+ nodes.append('circle').attr('class','node-dot').attr('r',d=>d.type==='PERSON'?19:(d.type==='ORG'?18:(d.type==='ACCOUNT'?16:15))).attr('fill',d=>colors[d.type]||'#718096').attr('fill-opacity',.96).attr('stroke',d=>colors[d.type]||'#718096').attr('stroke-width',2);
+ nodes.append('circle').attr('class','node-ring').attr('r',d=>d.type==='PERSON'?25:(d.type==='ORG'?24:21)).attr('fill','none').attr('stroke',d=>colors[d.type]||'#718096').attr('stroke-opacity',.28).attr('stroke-width',2);
+ // Clean network view: show only the typed color node on the canvas.
+ // Full entity name/type/evidence stays in the right-side detail panel and hover tooltip.
+ // This keeps the relationship graph visually readable instead of turning every node into a text card.
+ // Stable, clean radial layout: central organization/person, then rings. This is intentionally less chaotic than a raw force graph.
+ const degree=new Map(g.nodes.map(n=>[n.id,0])); g.edges.forEach(e=>{degree.set(endpoint(e.source),(degree.get(endpoint(e.source))||0)+1);degree.set(endpoint(e.target),(degree.get(endpoint(e.target))||0)+1)});
+ const selectedId=window.selectedEntityId && g.nodes.some(n=>n.id===window.selectedEntityId)?window.selectedEntityId:null;
+ const centerNode=g.nodes.find(n=>n.id===selectedId)||g.nodes.filter(n=>n.type==='ORG').sort((a,b)=>(degree.get(b.id)||0)-(degree.get(a.id)||0))[0]||[...g.nodes].sort((a,b)=>(degree.get(b.id)||0)-(degree.get(a.id)||0))[0];
+ const adj=new Map(g.nodes.map(n=>[n.id,[]])); g.edges.forEach(e=>{const a=endpoint(e.source),b=endpoint(e.target);if(adj.has(a)&&adj.has(b)){adj.get(a).push(b);adj.get(b).push(a)}});
+ const used=new Set(); if(centerNode){centerNode.x=w/2;centerNode.y=h/2;used.add(centerNode.id)}
+ const first=centerNode?(adj.get(centerNode.id)||[]).map(id=>g.nodes.find(n=>n.id===id)).filter(Boolean):[];
+ first.sort((a,b)=>{const typeRank=t=>({PERSON:0,PHONE:1,VEHICLE:2,ACCOUNT:3,LOCATION:4,ORG:5,EVENT:6}[t]??8);return typeRank(a.type)-typeRank(b.type)||((degree.get(b.id)||0)-(degree.get(a.id)||0))});
+ const radius1=Math.min(w,h)*.29; first.forEach((n,i)=>{const a=(-Math.PI/2)+(i/Math.max(1,first.length))*Math.PI*2;n.x=w/2+Math.cos(a)*radius1;n.y=h/2+Math.sin(a)*radius1;used.add(n.id)});
+ const rest=g.nodes.filter(n=>!used.has(n.id)); const radius2=Math.min(w,h)*.43; rest.forEach((n,i)=>{const a=(-Math.PI/2)+(i/Math.max(1,rest.length))*Math.PI*2;n.x=w/2+Math.cos(a)*radius2;n.y=h/2+Math.sin(a)*radius2});
+ // Real network force layout: links physically pull connected entities together,
+ // while charge + collision keep the graph readable. This makes the relationship
+ // lines visibly connect the actual nodes instead of leaving labels floating apart.
+ const forceLinks=d3.forceLink(edgeData).id(d=>d.id).distance(125).strength(.72);
+ sim=d3.forceSimulation(g.nodes)
+   .force('link',forceLinks)
+   .force('charge',d3.forceManyBody().strength(-420))
+   .force('center',d3.forceCenter(w/2,h/2).strength(.12))
+   .force('collide',d3.forceCollide().radius(d=>d.type==='PERSON'?62:55).strength(.95))
+   .alpha(.9).alphaDecay(.045);
+ sim.on('tick',()=>{
+   g.nodes.forEach(d=>{d.x=Math.max(85,Math.min(w-115,d.x));d.y=Math.max(95,Math.min(h-90,d.y))});
+   const curve=(d)=>{const x1=d.source.x,y1=d.source.y,x2=d.target.x,y2=d.target.y;const mx=(x1+x2)/2,my=(y1+y2)/2;const dx=x2-x1,dy=y2-y1;const len=Math.max(1,Math.hypot(dx,dy));const bend=Math.min(24,len*.10);return `M${x1},${y1} Q${mx-dy/len*bend},${my+dx/len*bend} ${x2},${y2}`};
+   links.attr('d',curve);hits.attr('d',curve);edgeLabels.attr('x',d=>(d.source.x+d.target.x)/2).attr('y',d=>(d.source.y+d.target.y)/2-6);nodes.attr('transform',d=>`translate(${d.x},${d.y})`);
+ });
+ sim.on('end',()=>setTimeout(()=>fitGraph(true),80));
+ if($('graphCount'))$('graphCount').textContent=`${g.nodes.length} entities • ${g.edges.length} links`;
+ setTimeout(()=>fitGraph(false),260);
+}
+function reheatGraph(){ if(sim){sim.alpha(.9).restart();setTimeout(()=>fitGraph(true),700)} }
+function highlightNeighborhood(id, type = '') {
+ if (!root) return;
+ const linked=new Set();
+ const endpoint=x=>typeof x==='object'?x.id:x;
+ G.edges.forEach(e=>{const source=endpoint(e.source),target=endpoint(e.target);if(source===id)linked.add(target);if(target===id)linked.add(source)});
+ const visible=n=>n.id===id || (linked.has(n.id) && (!type || n.type===type));
+ const direct=e=>{const source=endpoint(e.source),target=endpoint(e.target);return (source===id&&linked.has(target))||(target===id&&linked.has(source))};
+ root.selectAll('.graph-node').attr('opacity',n=>visible(n)?1:.10);
+ root.selectAll('.node-dot').attr('stroke-width',n=>n.id===id?4:2);
+ root.selectAll('.edge').attr('stroke-opacity',e=>direct(e)? .95 : .035);
+ root.selectAll('.edge-label').attr('opacity',e=>direct(e)?1:.05);
+}
+function clearGraphHighlight() {
+ if (!root) return;
+ root.selectAll('.graph-node').attr('opacity',1);
+ root.selectAll('.node-dot').attr('stroke-width',2);
+ root.selectAll('.edge').attr('stroke-opacity',.58);
+ root.selectAll('.edge-label').attr('opacity',1);
+}
+        async function selectEntity(id) { try { const d=await api('/api/entity/'+encodeURIComponent(id)); window.selectedEntityId=id; highlightNeighborhood(id); focusGraphNode(id); renderDetail(d); if(d.type==='PERSON') api('/api/person/'+encodeURIComponent(id)+'/profile').then(renderPersonProfile).catch(console.error); } catch(e){$('detail').innerHTML=`<div class="card"><div class="empty">Entity error: ${esc(e.message)}</div></div>`} }
+function focusGraphNode(id){ if(!root||!zoom)return; const n=(G.nodes||[]).find(x=>x.id===id); if(!n||!Number.isFinite(n.x))return; const w=$('networkView').clientWidth||900,h=$('networkView').clientHeight||700; const scale=1.35; svg.transition().duration(450).call(zoom.transform,d3.zoomIdentity.translate(w/2-scale*n.x,h/2-scale*n.y).scale(scale)); root.selectAll('.node-dot').classed('selected-node',d=>d.id===id); }
+function reportFocusUpdate(){ const ids=window.reportFocus||[]; const box=$('reportFocus'); if(!box)return; box.innerHTML=ids.length?`<b>Focused entities (${ids.length})</b><div class="focus-list" style="margin-top:6px">${ids.map(id=>{const n=G.nodes.find(x=>x.id===id);return `<span class="badge" onclick="selectEntity('${js(id)}')">${esc(n?.label||id)} ✕</span>`}).join('')}</div><button class="tool" style="margin-top:7px" onclick="clearReportFocus()">Clear focus</button>`:'No focused entities selected.'; }
+async function addToReport(id){ window.reportFocus=window.reportFocus||[]; if(!window.reportFocus.includes(id)) window.reportFocus.push(id); try{await api('/api/investigation/report/focus',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({case_id:'CASE-DEMO-001',entity_ids:window.reportFocus})});}catch(e){console.error(e)} reportFocusUpdate(); const n=G.nodes.find(x=>x.id===id); if(n) alert(`${n.label} added to the investigation report focus.`); }
+async function clearReportFocus(){window.reportFocus=[];try{await api('/api/investigation/report/focus',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({case_id:'CASE-DEMO-001',entity_ids:[]})})}catch(e){}reportFocusUpdate();}
+function renderDetail(d) { const types=[...new Set(d.related.map(r=>r.type))]; const meta=TYPE_META[d.type]||{icon:'🔹',label:d.type}; const cdr=d.type==='PHONE'||d.related.some(r=>r.type==='PHONE'); const fin=d.type==='ACCOUNT'||d.related.some(r=>r.type==='ACCOUNT'); $('detail').innerHTML=`<div class="entity-hero"><div class="entity-icon">${meta.icon}</div><div><div class="detail-title" style="font-size:20px">${esc(d.label)}</div><div class="muted">${esc(meta.label)} · ${esc(d.id)}</div></div></div><div class="action-row"><button class="tool" onclick="focusGraphNode('${js(d.id)}');highlightNeighborhood('${js(d.id)}')">🎯 Focus graph</button><button class="tool" onclick="addToReport('${js(d.id)}')">📑 Add to Report</button>${d.type==='PERSON'?`<button class="tool" onclick="openPerson360('${js(d.id)}')">👤 Person 360</button>`:`<button class="tool" onclick="showView('networkView','Relationship Network')">🕸️ Network</button>`}${cdr?`<button class="tool" onclick="showView('cdrView','CDR Intelligence');loadCDR();">📞 CDR Activity</button>`:fin?`<button class="tool" onclick="showView('financialView','Financial Intelligence');loadFinancial();">💰 Finance Activity</button>`:`<button class="tool" onclick="showView('timelineView','Investigation Timeline')">⏱️ Timeline</button>`}</div><div class="mini-grid" style="margin-top:10px"><div class="mini-stat"><b>${d.related.length}</b><span>Direct connections</span></div><div class="mini-stat"><b>${d.evidence.length}</b><span>Source evidence</span></div></div><div class="section-title"><h3>Graph Highlight</h3><span class="focus-pill">Selected</span></div><div class="chips"><button class="tool" onclick="highlightNeighborhood('${js(d.id)}')">All connected</button>${types.map(type=>`<button class="tool" onclick="highlightNeighborhood('${js(d.id)}','${js(type)}')">${esc(type)}</button>`).join('')}<button class="tool" onclick="clearGraphHighlight()">Clear</button></div><div class="notice">Focus keeps the selected entity centered while highlighting directly connected evidence.</div><div class="section-title"><h3>Connected Entities</h3><span class="focus-pill">${d.related.length}</span></div>${d.related.map(r=>`<div class="rel clickable" onclick="selectEntity('${js(r.id)}')"><b>${esc(r.label)}</b> <span class="badge">${esc(r.type)}</span><div class="muted">${r.records.length} source record(s) · click to inspect</div></div>`).join('')||'<div class="empty">No direct connections.</div>'}<div class="section-title"><h3>Source Evidence</h3><span class="focus-pill">${d.evidence.length}</span></div>${d.evidence.map(r=>`<div class="record"><b>${esc(r.id)} • ${esc(r.type)} • ${esc(r.date)}</b><p>${esc(r.text)}</p>${r.amounts.length?`<div class="badge">₹${r.amounts.reduce((a,b)=>a+b,0).toLocaleString('en-IN')}</div>`:''}</div>`).join('')||'<div class="empty">No linked records.</div>'}` }
+function openPerson360(id){selectEntity(id);setTimeout(()=>{$('detail')?.scrollTo({top:$('detail').scrollHeight,behavior:'smooth'})},250)}
+function renderPersonProfile(p) {
+            const groups = [['📞 Phones', p.identifiers.phones], ['🚗 Vehicles', p.identifiers.vehicles], ['📍 Locations', p.identifiers.locations], ['🏢 Organizations', p.identifiers.organizations], ['🏦 Accounts', p.identifiers.accounts], ['✉️ Emails', p.identifiers.emails], ['👥 People', p.identifiers.people]];
+            const s = p.snapshot || {};
+            const stats = `<div class="statgrid"><div class="stat"><div class="n">${s.connections || 0}</div><div class="l">Connections</div></div><div class="stat"><div class="n">${s.evidence_records || 0}</div><div class="l">Evidence</div></div><div class="stat"><div class="n">${s.cdr_calls || 0}</div><div class="l">CDR Calls</div></div><div class="stat"><div class="n">₹${Number(s.financial_total || 0).toLocaleString('en-IN')}</div><div class="l">Linked Finance</div></div></div>`;
+            const comm = (p.communications || []).map(x => `<div class="record"><b>${esc(x.caller)} ↔ ${esc(x.receiver)}</b><br><span class="muted">${Number(x.duration_seconds || 0)} sec · ${esc(x.date || 'Date unavailable')} · ${esc(x.record)}</span></div>`).join('') || '<div class="empty">No linked CDR activity.</div>';
+            const fin = (p.financial_activity || []).map(x => `<div class="record"><b>${esc(x.from)} → ${esc(x.to)}</b><br><span class="muted">₹${Number(x.amount || 0).toLocaleString('en-IN')} · ${esc(x.date || 'Date unavailable')} · ${esc(x.record)}</span></div>`).join('') || '<div class="empty">No linked financial activity.</div>';
+            const ev = (p.events || []).map(e => `<div class="record clickable" onclick="selectEntity('${js(e.id)}')"><b>${esc(e.label)}</b><div class="muted">${esc(e.date || 'Date unavailable')} · ${esc(e.case_id || '')}</div></div>`).join('') || '<div class="empty">No linked events.</div>';
+            $('detail').insertAdjacentHTML('beforeend', `<div class="card"><h3>👤 360° Person Profile</h3><div class="muted">Cases: ${p.case_ids.map(esc).join(', ') || 'No linked case'}</div>${stats}<h3>🧠 Investigation Snapshot</h3><div class="notice">${p.explanation.reasons.map(esc).join(' • ')}</div>${p.priority ? `<div class="kv"><b>Network priority</b><span>${p.priority.risk_score}</span></div>` : ''}<h3>Identifiers & Associations</h3>${groups.map(([title, items]) => items.length ? `<div class="record"><b>${title}</b><div class="chips">${items.map(x => `<span class="badge clickable" onclick="selectEntity('${js(x.id)}')">${esc(x.label)}</span>`).join('')}</div></div>` : '').join('') || '<div class="empty">No linked identifiers.</div>'}<h3>📞 Communication Activity</h3>${comm}<h3>💰 Financial Activity</h3>${fin}<h3>📅 Linked Events</h3>${ev}<h3>📁 Source Evidence</h3>${(p.evidence || []).map(r => `<div class="record"><b>${esc(r.id)} • ${esc(r.type)} • ${esc(r.date)}</b><p>${esc(r.text)}</p></div>`).join('') || '<div class="empty">No linked evidence records.</div>'}<div class="notice">${esc(p.explanation.disclaimer)}</div></div>`);
+        }
+
+        function renderAnalytics(a) { $('analyticsView').innerHTML = `<div class="card"><h2>🏆 Influential Entity Ranking</h2><p class="muted">Graph priority combines connectivity and betweenness. It is not a guilt or criminality score.</p><table class="table"><tr><th>Entity</th><th>Priority</th><th>Links</th></tr>${a.ranked.slice(0, 20).map(x => `<tr class="clickable" onclick="selectEntity('${js(x.id)}')"><td>${esc(x.label)}<br><span class="badge">${x.type}</span></td><td class="score">${x.risk_score}</td><td>${x.degree}</td></tr>`).join('')}</table></div><div class="card"><h2>⚠️ Pattern Detection</h2>${a.patterns.map(p => `<div class="record"><b>${esc(p.title)} • ${esc(p.severity)}</b><p><b>${esc(p.entity)}</b> — ${esc(p.detail)}</p></div>`).join('') || '<div class="empty">No patterns detected.</div>'}</div>` }
+        function renderTimeline(items) { window.timelineItems=items; renderTimelineFiltered(); }
+        function renderTimelineFiltered(){ const items=window.timelineItems||[]; const type=$('timelineType')?.value||''; const q=($('timelineSearch')?.value||'').toLowerCase(); const from=$('timelineFrom')?.value||''; const to=$('timelineTo')?.value||''; const filtered=items.filter(x=>(!type||x.type===type)&&(!q||(x.id+' '+x.preview+' '+x.entities.join(' ')).toLowerCase().includes(q))&&(!from||x.date>=from)&&(!to||x.date<=to)); $('timelineView').innerHTML=`<div class="card"><h2>📅 Investigation Timeline</h2><div class="filterbar"><input id="timelineSearch" class="input" style="max-width:220px" placeholder="Search event/entity" value="${esc(q)}" oninput="renderTimelineFiltered()"><select id="timelineType" class="input" style="max-width:180px" onchange="renderTimelineFiltered()"><option value="">All evidence types</option>${[...new Set(items.map(x=>x.type))].sort().map(t=>`<option value="${esc(t)}" ${t===type?'selected':''}>${esc(t)}</option>`).join('')}</select><input id="timelineFrom" type="date" class="input" style="max-width:150px" value="${esc(from)}" onchange="renderTimelineFiltered()"><input id="timelineTo" type="date" class="input" style="max-width:150px" value="${esc(to)}" onchange="renderTimelineFiltered()"></div><div class="notice">Showing <b>${filtered.length}</b> of ${items.length} events.</div>${filtered.map(x=>`<div class="event timeline-click" onclick="selectRecordEvent('${js(x.id)}')"><div class="date">${esc(x.date)}</div><div class="eventbox"><b>${esc(x.id)} • ${esc(x.type)}</b><p>${esc(x.preview)}</p><div class="muted">Entities: ${x.entities.map(esc).join(', ')} ${x.amounts.length?'• ₹'+x.amounts.reduce((a,b)=>a+b,0).toLocaleString('en-IN'):''}</div></div></div>`).join('')}</div>`; }
+
+function selectRecordEvent(recordId){ const item=(window.timelineItems||[]).find(x=>x.id===recordId); if(!item)return; const first=(G.nodes||[]).find(n=>n.label===item.entities?.[0]); if(first)selectEntity(first.id); else showView('timelineView','Investigation Timeline'); }
+
+function renderLocations(items) { $('locationView').innerHTML = '<div class="card"><h2>📍 Location Intelligence</h2><p class="muted">Synthetic location associations derived from ingested records.</p>' + items.map(x => `<div class="record"><b>${esc(x.label)}</b><div class="muted">${x.connections} connections</div><div class="chips">${x.people.map(p => `<span class="badge">👤 ${esc(p)}</span>`).join('') || '<span class="muted">No linked people</span>'}</div></div>`).join('') + '</div>' }
+        async function renderAudit() { let a = await api('/api/audit'); $('auditView').innerHTML = '<div class="card"><h2>📝 Investigation Audit Trail</h2><p class="muted">Demo session events.</p>' + (a.length ? a.map(x => `<div class="audit"><b>${esc(x.action)}</b><div class="muted">${esc(x.time)}</div><div>${esc(x.detail)}</div></div>`).join('') : '<div class="empty">No actions recorded in this session.</div>') + '</div>' }
+        function showView(id, title) { document.querySelectorAll('.view').forEach(x => x.classList.remove('active')); $(id).classList.add('active'); document.body.classList.toggle('network-mode', id==='networkView'); $('viewTitle').textContent = title; if (id === 'networkView') setTimeout(fitGraph, 50); if (id === 'auditView') renderAudit() }
+        function fitGraph(animate=true) {
+ if(!svg||!root)return;
+ const nodes=(window.currentGraphNodes||G.nodes||[]).filter(n=>Number.isFinite(n.x)&&Number.isFinite(n.y)); if(!nodes.length)return;
+ const w=$('networkView').clientWidth||900,h=$('networkView').clientHeight||700;
+ const minX=Math.min(...nodes.map(n=>n.x))-115,maxX=Math.max(...nodes.map(n=>n.x))+115,minY=Math.min(...nodes.map(n=>n.y))-95,maxY=Math.max(...nodes.map(n=>n.y))+95;
+ const bw=Math.max(1,maxX-minX),bh=Math.max(1,maxY-minY); const scale=Math.max(.30,Math.min(1.22,.88/Math.max(bw/w,bh/h)));
+ const tx=w/2-scale*(minX+maxX)/2,ty=h/2-scale*(minY+maxY)/2; const tr=d3.zoomIdentity.translate(tx,ty).scale(scale);
+ const sel=animate?svg.transition().duration(500):svg; sel.call(zoom.transform,tr);
+}
+function zoomIn() { svg && svg.transition().call(zoom.scaleBy, 1.3) } function zoomOut() { svg && svg.transition().call(zoom.scaleBy, .75) }
+        async function searchEntity() { let q = $('search').value.trim(); if (!q) return; let r = await api('/api/search?q=' + encodeURIComponent(q)); $('searchResult').innerHTML = r.length ? r.map(x => `<div class="result clickable" onclick="selectEntity('${js(x.id)}')"><b>${esc(x.label)}</b><br><span class="badge">${x.type}</span></div>`).join('') : '<div class="empty">No match.</div>'; if (r[0]) { selectEntity(r[0].id); focusGraphNode(r[0].id); } }
+        async function loadFinancial() { try { const f = await api('/api/financial'); $('financialView').innerHTML = `<div class="card"><h2>💰 Financial Transaction Intelligence</h2><p class="muted">Money-flow analysis over synthetic/demo transaction records.</p><div class="statgrid"><div class="stat"><div class="n">${f.count}</div><div class="l">Transactions</div></div><div class="stat"><div class="n">${f.accounts}</div><div class="l">Accounts</div></div><div class="stat"><div class="n">₹${Number(f.total || 0).toLocaleString('en-IN')}</div><div class="l">Total value</div></div><div class="stat"><div class="n">${f.flags.length}</div><div class="l">Investigation leads</div></div></div></div><div class="card"><h2>Top Accounts by Net Flow</h2>${f.top_accounts.map(x => `<div class="record"><b>${esc(x.account)}</b><br><span class="muted">Incoming ₹${Number(x.incoming).toLocaleString('en-IN')} · Outgoing ₹${Number(x.outgoing).toLocaleString('en-IN')} · Net ₹${Number(x.net).toLocaleString('en-IN')}</span></div>`).join('') || '<div class="empty">No financial transactions uploaded yet.</div>'}</div><div class="card"><h2>⚠️ Transaction Leads</h2>${f.flags.map(x => `<div class="flag"><b>${esc(x.from)} → ${esc(x.to)}</b><br>₹${Number(x.amount).toLocaleString('en-IN')} · ${esc(x.reason)} · ${esc(x.severity)}</div>`).join('') || '<div class="empty">No financial leads detected.</div>'}</div><div class="card"><h2>💸 Money Flow</h2>${f.transfers.map(x => `<div class="record"><b>${esc(x.from)} → ${esc(x.to)}</b><br><span class="muted">₹${Number(x.amount).toLocaleString('en-IN')} · ${esc(x.date || 'Date not provided')} · ${esc(x.record)}</span></div>`).join('') || '<div class="empty">Upload FINANCIAL records to populate the money-flow view.</div>'}</div>` } catch (e) { $('financialView').innerHTML = '<div class="card"><div class="empty">' + esc(e.message) + '</div></div>' } }
+
+        function initReportPanel() { if ($('reportPanel')) return; document.querySelector('.left').insertAdjacentHTML('afterbegin', `<div class="card" id="reportPanel"><h3>📑 Investigation Report</h3><div class="muted" style="margin-bottom:8px">Generate an evidence-grounded case summary from the current synthetic investigation.</div><button class="btn" style="width:100%" onclick="generateInvestigationReport()">Generate Report</button><button class="btn alt" style="width:100%;margin-top:7px" onclick="downloadInvestigationPDF()">⬇ Export PDF</button><div id="reportFocus" class="notice" style="margin-top:8px">No focused entities selected.</div><div id="reportResult" class="notice" style="margin-top:8px">No report generated yet.</div></div>`) }
+        async function generateInvestigationReport() { $('reportResult').textContent='Generating report…'; try { const r=await api('/api/investigation/report?case_id=CASE-DEMO-001'); window.lastReport=r; const c=r.case||{}; $('reportResult').innerHTML=`<b>${esc(c.title||c.id)}</b><br><span class="muted">${r.record_count} record(s) · ${r.top_entities.length} ranked entities · ${r.signals.length} signal(s)</span>${r.focus_entities?.length?`<div class="notice">Focused: ${r.focus_entities.map(x=>esc(x.label)).join(', ')}</div>`:''}<div style="margin-top:7px">${r.top_entities.slice(0,5).map(x=>`<div class="rel"><b>${esc(x.label)}</b> <span class="badge">${esc(x.type)}</span><br><span class="muted">Priority ${esc(x.priority_score)} · ${esc((x.reasons||[]).join(' • '))}</span></div>`).join('')||'<div class="empty">No ranked entities.</div>'}</div><div class="notice" style="margin-top:7px">${esc(r.disclaimer)}</div>` } catch(e) { $('reportResult').textContent='Report error: '+e.message } }
+        function downloadInvestigationPDF() { window.open(API_BASE + '/api/investigation/report?case_id=CASE-DEMO-001&format=pdf','_blank') }
+        function initAIExtractor() { if ($('aiExtractor')) return; document.querySelector('.left').insertAdjacentHTML('afterbegin', `<div class="card" id="aiExtractor"><h3>🧠 AI Evidence Extractor</h3><textarea id="aiText" rows="5" placeholder="Paste synthetic FIR/report text…"></textarea><div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px"><select id="aiRecordType"><option value="AI-REPORT">AI Report</option><option value="FIR">FIR / Police Report</option><option value="SURVEILLANCE">Surveillance Report</option><option value="INTELLIGENCE">Intelligence Report</option></select><button class="btn alt" onclick="runAIExtractor()">Analyze Text</button></div><button id="aiAddBtn" class="btn" style="margin-top:7px;width:100%;display:none" onclick="addAIToInvestigation()">＋ Add Reviewed Evidence to Investigation</button><div id="aiResult" class="notice">Extract entities, candidate relationships, dates and amounts. Review before adding to the case graph.</div></div>`) }
+        async function runAIExtractor() { const text=$('aiText').value.trim(); if(!text) return; $('aiResult').textContent='Analyzing…'; $('aiAddBtn').style.display='none'; try { const r=await api('/api/ai/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:text})}); window.lastAIAnalysis=r; $('aiAddBtn').style.display='block'; $('aiResult').innerHTML=`<b>${esc(r.summary)}</b><div class="chips" style="margin-top:7px">${r.entities.map(x=>`<span class="badge">${esc(x.type)}: ${esc(x.label)}</span>`).join('')}</div>${r.relationships.map(x=>`<div class="record"><b>${esc(x.source)} → ${esc(x.target)}</b><br><span class="muted">${esc(x.type)} · ${esc(x.evidence)}</span></div>`).join('')}${r.events.map(x=>`<div class="notice">📅 ${esc(x.date)} — ${esc(x.text)}</div>`).join('')}${r.amounts.length ? `<div class="notice">💰 Financial mentions: ₹${r.amounts.reduce((a,b)=>a+b,0).toLocaleString('en-IN')}</div>` : ''}<div class="notice">${esc(r.disclaimer)}</div>` } catch(e) { $('aiResult').textContent='AI extraction error: '+e.message } }
+        async function addAIToInvestigation() { const text=$('aiText').value.trim(); if(!text) return; const type=$('aiRecordType').value; $('aiAddBtn').disabled=true; $('aiAddBtn').textContent='Adding to graph…'; try { const r=await api('/api/ai/ingest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text,record_type:type,case_id:'CASE-DEMO-001'})}); $('aiResult').innerHTML=`<b>✅ Evidence added: ${esc(r.record.id)}</b><div class="notice">${esc(r.message)}</div><div class="chips">${r.analysis.entities.map(x=>`<span class="badge">${esc(x.type)}: ${esc(x.label)}</span>`).join('')}</div><div class="muted" style="margin-top:6px">The graph, timeline, analytics and unified investigation have been rebuilt from the new evidence.</div>`; await load(); if ($('unifiedView')?.classList.contains('active')) await loadUnified(); if ($('timelineView')?.classList.contains('active')) await loadTimeline?.(); } catch(e) { $('aiResult').textContent='Evidence ingest error: '+e.message } finally { $('aiAddBtn').disabled=false; $('aiAddBtn').textContent='＋ Add Reviewed Evidence to Investigation' } }
+
+        async function loadDashboard(){
+            const v=$('dashboardView'); if(!v)return;
+            try{
+                const [a,u,c,f,sec]=await Promise.all([api('/api/analytics'),api('/api/investigation'),api('/api/cdr'),api('/api/financial'),api('/api/security/evidence')]);
+                const cards=[['Evidence Records',a.stats.records],['People',a.stats.people],['Phones',a.stats.phones],['Vehicles',a.stats.vehicles||0],['Organizations',a.stats.organizations||0],['Locations',a.stats.locations],['Accounts',f.accounts],['Financial Txns',f.count],['CDR Calls',c.calls],['Investigation Signals',u.signals.length],['Integrity',sec.verified+'/'+sec.records.length],['Financial Value','₹'+Number(f.total||0).toLocaleString('en-IN')]];
+                const leadHtml=u.ranked.slice(0,8).map(x=>`<div class="record clickable" onclick="selectEntity('${js(x.id)}')"><b>${esc(x.label)}</b> <span class="badge">${esc(x.type)}</span><br><span class="muted">Priority ${x.priority_score} · ${esc((x.reasons||[]).join(' • '))}</span></div>`).join('')||'<div class="empty">No priority entities.</div>';
+                const signalHtml=u.signals.map(s=>`<div class="flag"><b>${esc(s.severity)} · ${esc(s.title)}</b><br>${esc(s.detail)}</div>`).join('')||'<div class="empty">No investigation signals.</div>';
+                v.innerHTML=`<div class="card"><h2>🛡️ NETRA Investigation Dashboard</h2><p class="muted">Single-pane case overview for synthetic/demo evidence. Signals are prioritization aids and require human verification.</p><div class="dashboard-grid">${cards.map(x=>`<div class="metric-card"><div class="big">${esc(x[1])}</div><div class="muted">${esc(x[0])}</div></div>`).join('')}</div></div><div class="card"><h2>🎯 Priority Leads</h2>${leadHtml}</div><div class="card"><h2>⚠️ Current Investigation Signals</h2>${signalHtml}</div><div class="card"><h2>🧭 Recommended Workflow</h2><div class="chips"><span class="badge">1. Review evidence</span><span class="badge">2. Inspect network</span><span class="badge">3. Cross-check CDR</span><span class="badge">4. Cross-check finance</span><span class="badge">5. Verify integrity</span><span class="badge">6. Export report</span></div></div>`;
+            }catch(e){v.innerHTML=`<div class="card"><div class="empty">Dashboard error: ${esc(e.message)}</div></div>`}
+        }
+        async function loadSecurity(){
+            const v=$('securityView'); if(!v)return;
+            try{
+                const s=await api('/api/security/evidence');
+                v.innerHTML=`<div class="card"><h2>🔐 Security & Evidence Integrity</h2><p class="muted">SHA-256 evidence fingerprinting for the demo. This verifies whether evidence content changed after ingestion; it is not a blockchain ledger.</p><div class="statgrid"><div class="stat"><div class="n">${s.records.length}</div><div class="l">Evidence Records</div></div><div class="stat"><div class="n integrity-ok">${s.verified}</div><div class="l">Verified</div></div><div class="stat"><div class="n ${s.changed?'integrity-bad':'integrity-ok'}">${s.changed}</div><div class="l">Changed</div></div><div class="stat"><div class="n">SHA-256</div><div class="l">Integrity Algorithm</div></div></div></div><div class="card"><h2>Evidence Fingerprints</h2><table class="table"><tr><th>Record</th><th>Type</th><th>Status</th><th>Fingerprint</th><th>Action</th></tr>${s.records.map(r=>`<tr><td>${esc(r.id)}</td><td>${esc(r.type)}</td><td class="${r.status==='VERIFIED'?'integrity-ok':'integrity-bad'}">${esc(r.status)}</td><td class="hash">${esc(r.hash)}</td><td><button class="tool" onclick="verifyEvidence('${js(r.id)}')">Verify</button></td></tr>`).join('')}</table></div><div class="card"><h2>Audit & Access Note</h2><div class="notice">Audit trail records ingestion and integrity-verification actions. Production deployment should add real authentication, RBAC, encryption, secure key management, immutable storage, retention controls and legal governance.</div><div class="filterbar"><span class="badge">DEMO ROLE: Investigator</span><span class="badge">CASE: CASE-DEMO-001</span><span class="badge">DATA: Synthetic</span></div></div>`;
+            }catch(e){v.innerHTML=`<div class="card"><div class="empty">Security error: ${esc(e.message)}</div></div>`}
+        }
+        async function verifyEvidence(id){ try{const r=await api('/api/security/verify/'+encodeURIComponent(id),{method:'POST'}); alert(r.status+' — '+r.id); loadSecurity(); }catch(e){alert(e.message)} }
+
+        async function loadUnified() { const view = $('unifiedView'); if (!view) return; view.innerHTML = '<div class="card"><h2>🧠 Unified Investigation Intelligence</h2><div class="empty">Combining network, CDR and financial evidence…</div></div>'; try { const u = await api('/api/investigation'); view.innerHTML = `<div class="card"><h2>🧠 Unified Investigation Intelligence</h2><p class="muted">Cross-modal prioritization across the current demo dataset. Scores are investigation priorities, not findings of guilt.</p><div class="statgrid"><div class="stat"><div class="n">${u.stats.nodes || 0}</div><div class="l">Entities</div></div><div class="stat"><div class="n">${u.stats.connections || 0}</div><div class="l">Connections</div></div><div class="stat"><div class="n">${u.stats.cdr_calls || 0}</div><div class="l">CDR Calls</div></div><div class="stat"><div class="n">${u.stats.financial_transactions || 0}</div><div class="l">Financial Txns</div></div></div></div><div class="card"><h2>⚠️ Cross-Modal Signals</h2>${u.signals.map(x => `<div class="flag"><b>${esc(x.title)} · ${esc(x.severity)}</b><br>${esc(x.detail)}</div>`).join('') || '<div class="empty">No cross-modal signals detected.</div>'}</div><div class="card"><h2>🎯 Explainable Investigation Priority</h2><p class="muted">Each score shows why an entity is prioritized. This is not a guilt or criminality score.</p><table class="table"><tr><th>Entity</th><th>Type</th><th>Priority</th><th>Signals</th><th>Why</th></tr>${u.ranked.slice(0, 15).map(x => `<tr class="clickable" onclick="selectEntity('${js(x.id)}')"><td>${esc(x.label)}</td><td>${esc(x.type)}</td><td class="score">${x.priority_score}</td><td>${esc((x.modalities||[]).join(' + ') || 'NETWORK')}</td><td>${esc((x.reasons||[]).join('; '))}</td></tr>`).join('')}</table></div><div class="card"><h2>🔗 Evidence Connections</h2>${u.connections.slice(0, 30).map(x => `<div class="record"><b>${esc(x.source)} → ${esc(x.target)}</b><br><span class="muted">${esc(x.evidence_type || 'EVIDENCE')} · ${esc(x.record || '')}</span></div>`).join('') || '<div class="empty">No connections available.</div>'}</div>` } catch (e) { view.innerHTML = `<div class="card"><h2>🧠 Unified Investigation Intelligence</h2><div class="empty">Unable to load unified analysis: ${esc(e.message)}</div></div>`; console.error(e) } }
+
+        async function loadCDR() { const box = $('cdrBox'), view = $('cdrView'); if (view) view.innerHTML = '<div class="card"><h2>📞 CDR Communication Intelligence</h2><div class="empty">Loading CDR analysis…</div></div>'; try { const c = await api('/api/cdr'); const links = Array.isArray(c.links) ? c.links : []; const flags = Array.isArray(c.flags) ? c.flags : []; const mins = Math.round(Number(c.total_duration_seconds || 0) / 60); if (box) box.innerHTML = `<b>${Number(c.calls || 0)}</b> calls · <b>${Number(c.unique_numbers || 0)}</b> numbers · <b>${mins}</b> min<br>${flags.length ? `⚠️ ${flags.length} repeated-link signal(s).` : 'No repeated-link signals.'}`; if (view) view.innerHTML = `<div class="card"><h2>📞 CDR Communication Intelligence</h2><div class="statgrid"><div class="stat"><div class="n">${Number(c.calls || 0)}</div><div class="l">Calls</div></div><div class="stat"><div class="n">${Number(c.unique_numbers || 0)}</div><div class="l">Unique numbers</div></div><div class="stat"><div class="n">${mins}</div><div class="l">Minutes</div></div><div class="stat"><div class="n">${flags.length}</div><div class="l">Repeated links</div></div></div></div><div class="card"><h2>Top Communication Links</h2>${links.map(x => `<div class="record"><b>${esc(x.caller || '')} ↔ ${esc(x.receiver || '')}</b><br><span class="muted">${Number(x.calls || 0)} call(s) · ${Math.round(Number(x.total_duration_seconds || 0) / 60)} min total</span></div>`).join('') || '<div class="empty">No CDR records uploaded yet.</div>'}</div><div class="card"><h2>⚠️ Investigation Leads</h2>${flags.map(x => `<div class="flag"><b>${esc(x.pair || '')}</b><br>${Number(x.calls || 0)} repeated calls · ${esc(x.reason || 'Repeated communication link')}</div>`).join('') || '<div class="empty">No repeated communication links detected.</div>'}</div>` } catch (e) { if (box) box.textContent = 'CDR API error: ' + e.message; if (view) view.innerHTML = '<div class="card"><h2>📞 CDR Communication Intelligence</h2><div class="empty">Unable to load CDR analysis. Restart the FastAPI server and refresh.</div></div>'; console.error(e) } }
+        async function addRecord() { let body = { id: $('rid').value.trim() || 'NEW-' + Date.now(), type: $('rtype').value, text: $('text').value }; if (!body.text.trim()) return alert('Enter synthetic report text.'); try { await api('/api/records', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); $('text').value = ''; $('rid').value = ''; await load(); alert('Record ingested.') } catch (e) { alert(e.message) } }
+async function uploadCategorized(input,category){ const f=input.files[0]; if(!f)return; const status=$('uploadStatus'); status.textContent='Uploading '+f.name+' as '+category+'…'; const fd=new FormData(); fd.append('file',f); try{ const r=await api('/api/upload?category='+encodeURIComponent(category),{method:'POST',body:fd}); status.innerHTML='✅ <b>'+esc(f.name)+'</b> ingested as '+esc(category)+' · '+(r.entities?.length||0)+' entities extracted'; await load(); if(category==='CDR') await loadCDR(); if(category==='FINANCIAL') await loadFinancial(); }catch(e){status.textContent='❌ Upload failed: '+e.message} input.value=''; }
+async function uploadFile() { let f = $('file').files[0]; if (!f) return; let fd = new FormData(); fd.append('file', f); try { const r=await api('/api/upload?category=AUTO', { method: 'POST', body: fd }); $('uploadStatus').innerHTML='✅ <b>'+esc(f.name)+'</b> ingested as '+esc(r.record?.type||'AUTO'); await load(); } catch (e) { $('uploadStatus').textContent='❌ Upload failed: '+e.message } $('file').value = '' }
+        bootAuth(); window.addEventListener('resize', () => { if ($('networkView').classList.contains('active')) load() }); window.addEventListener('keydown', e => { if (e.target.matches('input,textarea,select')) return; if (e.key === '0') { showView('dashboardView','NETRA Dashboard'); loadDashboard() } if (e.key === '1') showView('networkView', 'Relationship Network'); if (e.key === '2') showView('timelineView', 'Investigation Timeline'); if (e.key === '3') showView('analyticsView', 'Network Intelligence'); if (e.key === '4') showView('locationView', 'Location Intelligence'); if (e.key === '5') showView('auditView', 'Audit Trail'); if (e.key === '6') showView('cdrView', 'CDR Intelligence'); if (e.key === '7') showView('financialView', 'Financial Intelligence'); if (e.key === '8') { showView('unifiedView', 'Unified Investigation'); loadUnified() } if (e.key === 'Enter' && document.activeElement === $('search')) searchEntity() });
+    </script>
+</body>
+
+</html>

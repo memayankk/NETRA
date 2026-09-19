@@ -1,0 +1,27 @@
+[
+  {
+    "id": "FIR-001",
+    "type": "FIR",
+    "text": "Rohan Mehta was seen meeting Amit Verma near Vaishali Nagar, Jaipur. Rohan used phone 9876543210 and vehicle RJ14AB1234. Amit is associated with Sunrise Logistics."
+  },
+  {
+    "id": "FIR-002",
+    "type": "SURVEILLANCE",
+    "text": "Amit Verma called Suresh Khan from 9876543210. Suresh was observed near Vaishali Nagar and used vehicle RJ14CD5678."
+  },
+  {
+    "id": "FIR-003",
+    "type": "FINANCIAL",
+    "text": "Sunrise Logistics received a transfer linked to Amit Verma. Account AC100001 was referenced for Amit Verma in the investigation notes. Rohan Mehta and Suresh Khan were listed in the investigation notes."
+  },
+  {
+    "id": "FIR-004",
+    "type": "CDR",
+    "text": "Phone 9876543210 communicated with 9123456789. The second number is associated with Suresh Khan."
+  },
+  {
+    "id": "FIR-005",
+    "type": "REPORT",
+    "text": "Rohan Mehta and Suresh Khan were reported at Jaipur Railway Station. Amit Verma was connected to Sunrise Logistics."
+  }
+]
