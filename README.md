@@ -18,7 +18,7 @@ NETRA is a presentation-ready prototype for **SIH26189 — AI-Powered Criminal N
 - SHA-256 evidence integrity verification and audit trail
 
 ## Demo login
-- **Username:** `investigator`
+- **Username:** `memayankk`
 - **Password:** `Netra@2026`
 - Role: Investigator
 
